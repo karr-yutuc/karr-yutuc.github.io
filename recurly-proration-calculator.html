@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recurly Proration Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #1a202c;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #2d3748;
+    }
+
+    header p {
+      margin-top: 8px;
+      color: #718096;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 500px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input, select {
+      padding: 10px 14px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #2d3748;
+      transition: border-color 0.2s;
+      outline: none;
+      background: #fafafa;
+    }
+
+    input:focus, select:focus {
+      border-color: #667eea;
+      background: #fff;
+    }
+
+    .prefix-wrap {
+      position: relative;
+    }
+
+    .prefix-wrap span {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #a0aec0;
+      font-size: 1rem;
+    }
+
+    .prefix-wrap input {
+      padding-left: 28px;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #a0aec0;
+      margin-top: 2px;
+    }
+
+    .calc-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .calc-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+    .calc-btn:active { transform: translateY(0); }
+
+    #results {
+      display: none;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.95rem;
+    }
+
+    .result-row:last-child { border-bottom: none; }
+
+    .result-row .label { color: #718096; }
+    .result-row .value { font-weight: 600; color: #2d3748; }
+
+    .result-row.highlight .label { color: #2d3748; font-weight: 600; }
+    .result-row.highlight .value { font-size: 1.2rem; }
+
+    .value.credit { color: #38a169; }
+    .value.charge { color: #e53e3e; }
+    .value.neutral { color: #3182ce; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .badge.upgrade { background: #fed7d7; color: #c53030; }
+    .badge.downgrade { background: #c6f6d5; color: #276749; }
+    .badge.same { background: #e2e8f0; color: #4a5568; }
+
+    .formula-box {
+      background: #f7fafc;
+      border-left: 4px solid #667eea;
+      border-radius: 0 8px 8px 0;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 0.88rem;
+      color: #4a5568;
+      line-height: 1.7;
+    }
+
+    .formula-box strong { color: #2d3748; }
+
+    .reset-btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      color: #718096;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .reset-btn:hover { border-color: #a0aec0; color: #4a5568; }
+
+    .note {
+      font-size: 0.82rem;
+      color: #a0aec0;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .note a { color: #667eea; text-decoration: none; }
+    .note a:hover { text-decoration: underline; }
+
+    .section-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Recurly Proration Calculator</h1>
+      <p>Estimate prorated charges or credits when changing a subscription plan.</p>
+    </header>
+
+    <div class="card">
+      <h2>Billing Period</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label>Billing Period Start</label>
+          <input type="date" id="periodStart" />
+        </div>
+        <div class="field">
+          <label>Billing Period End</label>
+          <input type="date" id="periodEnd" />
+        </div>
+        <div class="field">
+          <label>Change Date</label>
+          <input type="date" id="changeDate" />
+          <span class="hint">Date the plan change takes effect</span>
+        </div>
+        <div class="field">
+          <label>Billing Interval</label>
+          <select id="billingInterval">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="custom">Custom (use dates above)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Current Plan</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label>Plan Name</label>
+          <input type="text" id="oldPlanName" placeholder="e.g. Basic" />
+        </div>
+        <div class="field">
+          <label>Plan Price</label>
+          <div class="prefix-wrap">
+            <span>$</span>
+            <input type="number" id="oldPlanPrice" placeholder="50.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Quantity / Seats</label>
+          <input type="number" id="oldQuantity" placeholder="1" min="1" value="1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>New Plan</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label>Plan Name</label>
+          <input type="text" id="newPlanName" placeholder="e.g. Pro" />
+        </div>
+        <div class="field">
+          <label>Plan Price</label>
+          <div class="prefix-wrap">
+            <span>$</span>
+            <input type="number" id="newPlanPrice" placeholder="100.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Quantity / Seats</label>
+          <input type="number" id="newQuantity" placeholder="1" min="1" value="1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Proration Settings</h2>
+      <div class="form-grid">
+        <div class="field full-width">
+          <label>Credit Type</label>
+          <select id="creditType">
+            <option value="prorated">Prorated Credit — credit unused days of current plan</option>
+            <option value="full">Full Credit — credit full price of current plan</option>
+            <option value="none">No Credit — no refund for current plan</option>
+          </select>
+        </div>
+        <div class="field full-width">
+          <label>Proration Timing</label>
+          <select id="prorationTiming">
+            <option value="immediate">Immediate — charge/credit now</option>
+            <option value="renewal">At Next Renewal — apply at next billing date</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">Calculate Proration</button>
+
+    <div id="results" class="card" style="margin-top: 24px;">
+      <h2>
+        Results
+        <span id="changeBadge" class="badge"></span>
+      </h2>
+
+      <div class="result-row">
+        <span class="label">Days in billing period</span>
+        <span class="value" id="r-totalDays"></span>
+      </div>
+      <div class="result-row">
+        <span class="label">Days already used</span>
+        <span class="value" id="r-daysUsed"></span>
+      </div>
+      <div class="result-row">
+        <span class="label">Days remaining</span>
+        <span class="value" id="r-daysRemaining"></span>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="result-row">
+        <span class="label">Current plan total (period)</span>
+        <span class="value" id="r-oldTotal"></span>
+      </div>
+      <div class="result-row">
+        <span class="label">Credit for current plan</span>
+        <span class="value credit" id="r-credit"></span>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="result-row">
+        <span class="label">New plan total (period)</span>
+        <span class="value" id="r-newTotal"></span>
+      </div>
+      <div class="result-row">
+        <span class="label">Prorated charge for new plan</span>
+        <span class="value charge" id="r-newCharge"></span>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="result-row highlight">
+        <span class="label">Net amount due now</span>
+        <span class="value" id="r-net"></span>
+      </div>
+
+      <div id="timingNote" class="hint" style="margin-top: 8px;"></div>
+
+      <div class="formula-box" id="formulaBox"></div>
+
+      <button class="reset-btn" onclick="reset()">Reset Calculator</button>
+    </div>
+
+    <p class="note">
+      Based on <a href="https://docs.recurly.com/recurly-subscriptions/docs/change-subscription" target="_blank">Recurly's subscription change documentation</a>.
+      Results are estimates — actual billing may vary based on your Recurly configuration.
+    </p>
+  </div>
+
+  <script>
+    // Pre-fill today's date and sensible defaults
+    window.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+      document.getElementById('periodStart').value = fmt(firstOfMonth);
+      document.getElementById('periodEnd').value = fmt(lastOfMonth);
+      document.getElementById('changeDate').value = fmt(today);
+    });
+
+    function fmt(d) {
+      return d.toISOString().split('T')[0];
+    }
+
+    function parseDate(str) {
+      // Parse as local date (not UTC) to avoid off-by-one issues
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function diffDays(a, b) {
+      return Math.round((b - a) / (1000 * 60 * 60 * 24));
+    }
+
+    function money(n) {
+      return '$' + Math.abs(n).toFixed(2);
+    }
+
+    function calculate() {
+      const startStr = document.getElementById('periodStart').value;
+      const endStr = document.getElementById('periodEnd').value;
+      const changeStr = document.getElementById('changeDate').value;
+
+      if (!startStr || !endStr || !changeStr) {
+        alert('Please fill in all date fields.');
+        return;
+      }
+
+      const start = parseDate(startStr);
+      const end = parseDate(endStr);
+      const change = parseDate(changeStr);
+
+      if (end <= start) { alert('Billing period end must be after start.'); return; }
+      if (change < start || change > end) { alert('Change date must be within the billing period.'); return; }
+
+      const oldPrice = parseFloat(document.getElementById('oldPlanPrice').value) || 0;
+      const newPrice = parseFloat(document.getElementById('newPlanPrice').value) || 0;
+      const oldQty = parseInt(document.getElementById('oldQuantity').value) || 1;
+      const newQty = parseInt(document.getElementById('newQuantity').value) || 1;
+      const creditType = document.getElementById('creditType').value;
+      const timing = document.getElementById('prorationTiming').value;
+
+      const oldPlanName = document.getElementById('oldPlanName').value || 'Current Plan';
+      const newPlanName = document.getElementById('newPlanName').value || 'New Plan';
+
+      const totalDays = diffDays(start, end);
+      const daysUsed = diffDays(start, change);
+      const daysRemaining = totalDays - daysUsed;
+
+      const oldTotal = oldPrice * oldQty;
+      const newTotal = newPrice * newQty;
+
+      // Credit for old plan
+      let credit = 0;
+      if (creditType === 'prorated') {
+        credit = (daysRemaining / totalDays) * oldTotal;
+      } else if (creditType === 'full') {
+        credit = oldTotal;
+      }
+      // 'none' → credit stays 0
+
+      // Charge for new plan (always prorated for remaining days)
+      const newCharge = (daysRemaining / totalDays) * newTotal;
+
+      const net = newCharge - credit;
+
+      // Determine upgrade/downgrade
+      const isUpgrade = newTotal > oldTotal;
+      const isDowngrade = newTotal < oldTotal;
+
+      // Populate results
+      document.getElementById('r-totalDays').textContent = totalDays + ' days';
+      document.getElementById('r-daysUsed').textContent = daysUsed + ' days';
+      document.getElementById('r-daysRemaining').textContent = daysRemaining + ' days';
+
+      document.getElementById('r-oldTotal').textContent = money(oldTotal) + ' / period';
+      document.getElementById('r-credit').textContent = creditType === 'none'
+        ? '$0.00 (no credit)'
+        : (creditType === 'full' ? money(credit) + ' (full)' : money(credit) + ' (prorated)');
+
+      document.getElementById('r-newTotal').textContent = money(newTotal) + ' / period';
+      document.getElementById('r-newCharge').textContent = money(newCharge);
+
+      const netEl = document.getElementById('r-net');
+      if (net > 0) {
+        netEl.textContent = money(net) + ' charged';
+        netEl.className = 'value charge';
+      } else if (net < 0) {
+        netEl.textContent = money(Math.abs(net)) + ' credited';
+        netEl.className = 'value credit';
+      } else {
+        netEl.textContent = '$0.00 (no change)';
+        netEl.className = 'value neutral';
+      }
+
+      const badge = document.getElementById('changeBadge');
+      if (isUpgrade) { badge.textContent = 'Upgrade'; badge.className = 'badge upgrade'; }
+      else if (isDowngrade) { badge.textContent = 'Downgrade'; badge.className = 'badge downgrade'; }
+      else { badge.textContent = 'No Change'; badge.className = 'badge same'; }
+
+      document.getElementById('timingNote').textContent = timing === 'renewal'
+        ? 'Proration timing: These amounts will be applied at the next renewal date, not charged immediately.'
+        : 'Proration timing: These amounts are charged/credited immediately upon plan change.';
+
+      document.getElementById('formulaBox').innerHTML = `
+        <strong>How this was calculated:</strong><br>
+        Days remaining = ${daysRemaining} / ${totalDays} days = ${(daysRemaining/totalDays*100).toFixed(1)}%<br>
+        ${creditType === 'prorated'
+          ? `Credit = (${daysRemaining} ÷ ${totalDays}) × ${money(oldTotal)} = <strong>${money(credit)}</strong>`
+          : creditType === 'full'
+            ? `Credit = full plan price = <strong>${money(credit)}</strong>`
+            : `Credit = <strong>$0.00</strong> (no credit selected)`
+        }<br>
+        New plan charge = (${daysRemaining} ÷ ${totalDays}) × ${money(newTotal)} = <strong>${money(newCharge)}</strong><br>
+        Net = ${money(newCharge)} − ${money(credit)} = <strong>${net >= 0 ? money(net) + ' due' : money(Math.abs(net)) + ' credit'}</strong>
+      `;
+
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function reset() {
+      document.getElementById('results').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
